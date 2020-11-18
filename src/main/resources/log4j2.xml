@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration xmlns="http://logging.apache.org/log4j/2.0/config">
+
+	<Appenders>
+		<RollingFile name="FILE">
+			<FileName>./logs/sysmon.log</FileName>
+			<FilePattern>./log-archive/%d{yyyy-MM-dd-hh}-%i.log.zip</FilePattern>
+			<PatternLayout>
+				<Pattern>%-5p %d{yyyy-MM-dd HH:mm:ss,SSS} [%t] (%F:%L) - %m%n</Pattern><!-- 패키지경로 제거 -->
+			</PatternLayout>
+			<Policies>
+				<SizeBasedTriggeringPolicy size="10 MB" />
+			</Policies>
+			<DefaultRolloverStrategy max="5" />
+		</RollingFile>
+		
+		<!-- <RollingFile name="FILE_STATISTIC">
+			<FileName>./logs/sysmon-statistic.log</FileName>
+			<FilePattern>./log-archive-statistic/%d{yyyy-MM-dd-hh}-%i.log.zip</FilePattern>
+			<PatternLayout>
+				<Pattern>%-5p %d{yyyy-MM-dd HH:mm:ss,SSS} %m%n</Pattern>패키지경로 제거
+			</PatternLayout>
+			<Policies>
+				<SizeBasedTriggeringPolicy size="10 MB" />
+			</Policies>
+			<DefaultRolloverStrategy max="5" />
+		</RollingFile>
+		
+		<RollingFile name="FILE_TRAP">
+			<FileName>./logs/sysmon-trap.log</FileName>
+			<FilePattern>./log-archive-trap/%d{yyyy-MM-dd-hh}-%i.log.zip</FilePattern>
+			<PatternLayout>
+				<Pattern>%-5p %d{yyyy-MM-dd HH:mm:ss,SSS} %m%n</Pattern>패키지경로 제거
+			</PatternLayout>
+			<Policies>
+				<SizeBasedTriggeringPolicy size="10 MB" />
+			</Policies>
+			<DefaultRolloverStrategy max="5" />
+		</RollingFile> -->
+
+		<Console name="STDOUT" target="SYSTEM_OUT">
+			<PatternLayout pattern="%-5p %d{yyyy-MM-dd HH:mm:ss,SSS} [%t] (%F:%L) - %m%n" /><!-- 패키지경로 제거 -->
+		</Console>
+	</Appenders>
+
+	<Loggers>
+		<Root level="DEBUG">
+			<AppenderRef ref="STDOUT" /> <!-- ## 운영시 주석처리 -->
+			<AppenderRef ref="FILE" />
+		</Root>
+		<!-- <logger name="com.hansol.pom.db.alarm.StatisticVerticle">
+	    	<level value="WARN"/>
+	    	<appender-ref ref="FILE_STATISTIC"/>
+	    </logger>
+	    <logger name="com.hansol.pom.db.snmp.SnmpTrapReceiver">
+	    	<level value="WARN"/>
+	    	<appender-ref ref="FILE_TRAP"/>
+	    </logger>-->
+	</Loggers>
+	
+	
+
+</Configuration>
