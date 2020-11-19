@@ -22,7 +22,7 @@ public class AppMain {
 
 		Vertx vertx = Vertx.vertx(new VertxOptions()
 				.setWorkerPoolSize(10)
-				.setInternalBlockingPoolSize(10));
+				.setInternalBlockingPoolSize(10)); 
 
 		vertx.deployVerticle(FileHandleVerticle.class.getName(), logger::warn);
 		vertx.deployVerticle(DataAccessVerticle.class.getName(), logger::warn);
