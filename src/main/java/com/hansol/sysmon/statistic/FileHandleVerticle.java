@@ -19,11 +19,17 @@ public class FileHandleVerticle extends AbstractVerticle {
 
 	private final Logger logger = LogManager.getLogger(this.getClass());
 
-	// AtomicLong size = new AtomicLong();
+	/**
+	 * @see - 아래와 같은 이유로 50초 이상 초과하지 않게 설정 해야함.
+	 * 	<li>저장처리는 한번의 트랜잭션당 장비당 1개씩 제한 
+	 * 	<li>메모리 제한, 한번에 읽어들이는 양을 많이 소요하지 않기 위함
+	 * */
+	private final long pollingTimeMills = 20*1000;
+	
 	static ConcurrentHashMap<String, Long> sizeInfo = new ConcurrentHashMap<String, Long>();
 
-	static ConcurrentHashMap<String, Long> throttleInfo = new ConcurrentHashMap<String, Long>();
 	private static final long realTimeThrottleMills = 3 * 60 * 1000;
+	static ConcurrentHashMap<String, Long> throttleInfo = new ConcurrentHashMap<String, Long>();
 
 	private LocalMap<String,JsonObject> realTimeMap = null;
 
@@ -43,7 +49,7 @@ public class FileHandleVerticle extends AbstractVerticle {
 				if (result.succeeded()) {
 					AsyncFile file = result.result();
 
-					vertx.setPeriodic(10*1000, p -> {
+					vertx.setPeriodic(pollingTimeMills, p -> {
 
 						getAsyncFileSize(currSize -> {
 							long readPos = sizeInfo.get("sizeinfo"); // size.get();

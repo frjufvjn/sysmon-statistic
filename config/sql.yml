@@ -1,0 +1,20 @@
+
+get-max-seq: |
+  SELECT device_id, IFNULL(MAX(last_seq),0) + 1 last_seq  
+  FROM t_agnt_value 
+  WHERE device_id IN 
+
+get-max-seq-tail: "GROUP BY device_id"
+
+save-main: |
+  INSERT INTO t_agnt_value (device_id, last_updated, last_seq, data_gathered)  
+  VALUES (?, now(), ?, str_to_date(?, '%Y-%m-%d %H:%i:%s.%f')) 
+  ON DUPLICATE KEY  
+  UPDATE  
+  last_seq = ?, 
+  last_updated = now(), 
+  data_gathered = str_to_date(?, '%Y-%m-%d %H:%i:%s.%f')
+
+save-sub: |
+  INSERT INTO t_agnt_value_min (device_id, device_ip, seq, crit_name, crit_sub_name, value, reg_time)  
+  VALUES (?, ?, ?, ?, ?, ?, NOW()) 
