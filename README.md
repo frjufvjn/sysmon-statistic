@@ -1,3 +1,4 @@
+![Java CI](https://github.com/frjufvjn/sysmon-statistic/workflows/Java%20CI/badge.svg?branch=dev)
 # sysmon-statistic
 
 Hansol Inticube IS-MON statistic        
