@@ -19,20 +19,9 @@ public class FileHandleVerticle extends AbstractVerticle {
 
 	private final Logger logger = LogManager.getLogger(this.getClass());
 
-	/**
-	 * @see - 아래와 같은 이유로 50초 이상 초과하지 않게 설정 해야함.
-	 * 	<li>저장처리는 한번의 트랜잭션당 장비당 1개씩 제한 TODO 혹시라도 모르니 2개이상이 올때를 대비해 구현해야할듯... 
-	 * 	<li>메모리 제한, 한번에 읽어들이는 양을 많이 소요하지 않기 위함
-	 * */
-	private final long pollingTimeMills = 20*1000;
-
 	static ConcurrentHashMap<String, Long> sizeInfo = new ConcurrentHashMap<String, Long>();
-
-	private static final long realTimeThrottleMills = 3 * 60 * 1000;
 	static ConcurrentHashMap<String, Long> throttleInfo = new ConcurrentHashMap<String, Long>();
-
 	private LocalMap<String,JsonObject> realTimeMap = null;
-
 	private String path = "";
 
 	@Override
@@ -42,16 +31,29 @@ public class FileHandleVerticle extends AbstractVerticle {
 
 		realTimeMap = vertx.sharedData().getLocalMap("realtime-static-map");
 
+		fileRead();
+	}
+
+	private void fileRead() {
+
+		/**
+		 * @see - 아래와 같은 이유로 50초 이상 초과하지 않게 설정 해야함.
+		 * 	<li>저장처리는 한번의 트랜잭션당 장비당 1개씩 제한 TODO 혹시라도 모르니 2개이상이 올때를 대비해 구현해야할듯... 
+		 * 	<li>메모리 제한, 한번에 읽어들이는 양을 많이 소요하지 않기 위함
+		 * */
+		final long pollingTimeMills = config().getInteger("read-inteval-sec", 20) * 1000;
+		final long saveThrottleMills = config().getInteger("save-throttle-min", 3) * 60 * 1000;
+
 		getAsyncFileSize(size -> {
 			sizeInfo.put("sizeinfo", size);
 		});
 
 		vertx.runOnContext(c -> {
-			vertx.fileSystem().open(path, new OpenOptions(), result -> {
+			vertx.fileSystem().open(path, new OpenOptions().setRead(true), result -> {
 				if (result.succeeded()) {
 					AsyncFile file = result.result();
 
-					vertx.setPeriodic(pollingTimeMills, p -> {
+					vertx.setPeriodic(pollingTimeMills, period -> {
 
 						getAsyncFileSize(currSize -> {
 							long readPos = sizeInfo.get("sizeinfo"); // size.get();
@@ -59,59 +61,78 @@ public class FileHandleVerticle extends AbstractVerticle {
 
 							logger.debug("pos:{}, len:{}", readPos, readLen);
 
-							if (readLen > 0) {
-								Buffer buff = Buffer.buffer(readLen); // TODO Require Buffer size limit 
+							if (readLen != 0) {
 
-								file.read(buff, 0, readPos, readLen, ar -> {
-									if (ar.succeeded()) {
-										final String changedStr = ar.result().toString();
+								if (readLen < 0) {
+									logger.warn("Log file rolling event --> pos:{}, len:{}", readPos, readLen);
+									file.close(mClosed -> {
+										if (mClosed.succeeded()) {
+											vertx.cancelTimer(period);
 
-										String[] arr = changedStr.split("\n");
-										logger.info("[");
+											// 재귀호출
+											fileRead();
+										}
+									});
 
-										JsonArray jsonArr = new JsonArray();
-										for (String ele : arr) {
-											if (ele.indexOf("[RECV]") != -1) {
-												try {
-													JsonObject data = new JsonObject(ele.substring(32));
-													logger.info(">> {}", data.encode());
+								} else {
 
-													String deviceId = data.getString("deviceid");
+									Buffer buff = Buffer.buffer(readLen); // TODO Require Buffer size limit 
 
-													realTimeMap.put(deviceId, data);
+									file.read(buff, 0, readPos, readLen, ar -> {
+										if (ar.succeeded()) {
+											final String changedStr = ar.result().toString();
 
-													if (!throttleInfo.containsKey(deviceId)) {
-														throttleInfo.put(deviceId, System.currentTimeMillis());
-														jsonArr.add(data);
-													} else {
-														if ( System.currentTimeMillis() > throttleInfo.get(deviceId) + realTimeThrottleMills ) {
+											String[] arr = changedStr.split("\n");
+											logger.debug("[");
+
+											JsonArray jsonArr = new JsonArray();
+											for (String ele : arr) {
+												final int acceptableIdx = ele.indexOf("[RECV]");
+												if (acceptableIdx != -1) {
+													try {
+														JsonObject data = new JsonObject(ele.substring(acceptableIdx + 7));
+														logger.debug(">> {}", data.encode());
+
+														String deviceId = data.getString("deviceid");
+
+														realTimeMap.put(deviceId, data);
+
+														if (!throttleInfo.containsKey(deviceId)) {
 															throttleInfo.put(deviceId, System.currentTimeMillis());
 															jsonArr.add(data);
 														} else {
-															logger.debug("## skip....");
+															if ( System.currentTimeMillis() > throttleInfo.get(deviceId) + saveThrottleMills ) {
+																throttleInfo.put(deviceId, System.currentTimeMillis());
+																jsonArr.add(data);
+															} else {
+																logger.debug("## skip....");
+															}
 														}
-													}
 
-												} catch (DecodeException e) {
-													logger.error(e.getMessage());
+													} catch (DecodeException e) {
+														logger.error(e.getMessage());
+													}
+												} else {
+													logger.warn("unacceptable string --> {}", ele);
 												}
 											}
+											logger.debug("]");
+
+											if (jsonArr.size() > 0) {
+												logger.info("save dispatch size: {}", jsonArr.size());
+												vertx.eventBus().send("statistic.save", jsonArr);
+											}
+
+										} else {
+											logger.error("Failed to write: {}", ar.cause());
 										}
-										logger.info("]");
 
-										if (jsonArr.size() > 0) {
-											vertx.eventBus().send("statistic.save", jsonArr);
-										}
+										getAsyncFileSize(size -> {
+											sizeInfo.put("sizeinfo", size);
+										});
 
-									} else {
-										logger.error("Failed to write: {}", ar.cause());
-									}
-
-									getAsyncFileSize(size -> {
-										sizeInfo.put("sizeinfo", size);
 									});
-
-								});
+								}
 							}
 						});
 					});

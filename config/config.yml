@@ -1,6 +1,8 @@
 
-dbms-type: oracle
-read-log-file-path: C:/workspace_new/Hcheck-ydh/logs/agent/agent.log.LAPTOP-IRQOLSO6
+dbms-type: mysql
+read-log-file-path: C:/workspace_new/Hcheck-ydh/logs/agent/agent.log.LAPTOP-IRQOLSO6 # C:/doc/logfile.log
+read-inteval-sec: 10
+save-throttle-min: 3
 
 sql-service: 
   mysql:
