@@ -1,23 +1,60 @@
 
-dbms-type: mysql
+dbms-type: oracle
 read-log-file-path: C:/workspace_new/Hcheck-ydh/logs/agent/agent.log.LAPTOP-IRQOLSO6
 
-get-max-seq: |
-  SELECT device_id, IFNULL(MAX(last_seq),0) + 1 last_seq  
-  FROM t_agnt_value 
-  WHERE device_id IN 
+sql-service: 
+  mysql:
+    get-max-seq: |
+      SELECT device_id, IFNULL(MAX(last_seq),0) + 1 last_seq  
+      FROM t_agnt_value 
+      WHERE device_id IN 
+    
+    get-max-seq-tail: "GROUP BY device_id"
+    
+    save-main: |
+      INSERT INTO t_agnt_value (device_id, last_updated, last_seq, data_gathered)  
+      VALUES (?, now(), ?, str_to_date(?, '%Y-%m-%d %H:%i:%s.%f')) 
+      ON DUPLICATE KEY  
+      UPDATE  
+      last_seq = ?, 
+      last_updated = now(), 
+      data_gathered = str_to_date(?, '%Y-%m-%d %H:%i:%s.%f')
+    
+    save-sub: |
+      INSERT INTO t_agnt_value_min (device_id, device_ip, seq, crit_name, crit_sub_name, value, reg_time)  
+      VALUES (?, ?, ?, ?, ?, ?, NOW()) 
+    
+  oracle:
+    test-query: select sysdate from dual
+    description: "오라클에서 date형 저장시 칼럼 타입이 timestamp가 아니라서 microseconds타입을 저장하면 안됨"
+    
+    get-max-seq: |
+      SELECT device_id, NVL(MAX(last_seq),0) + 1 last_seq  
+      FROM t_agnt_value 
+      WHERE device_id IN 
+    
+    get-max-seq-tail: "GROUP BY device_id"
+    
+    save-main: |
+      MERGE INTO T_AGNT_VALUE A
+      USING
+      (
+        SELECT
+          ? DEVICE_ID,
+          ? LAST_SEQ,
+          ? DATA_GATHERED
+        FROM DUAL
+      ) B
+      ON (A.DEVICE_ID = B.DEVICE_ID)
+      WHEN MATCHED THEN
+        UPDATE
+        SET A.LAST_SEQ = B.LAST_SEQ,
+        A.LAST_UPDATED = SYSDATE,
+        A.DATA_GATHERED = TO_DATE(B.DATA_GATHERED,'YYYY-MM-DD HH24:MI:SS')
+      WHEN NOT MATCHED THEN
+        INSERT (DEVICE_ID, LAST_SEQ, LAST_UPDATED, DATA_GATHERED)
+        VALUES (B.DEVICE_ID, B.LAST_SEQ, SYSDATE, TO_DATE(B.DATA_GATHERED,'YYYY-MM-DD HH24:MI:SS'))
 
-get-max-seq-tail: "GROUP BY device_id"
-
-save-main: |
-  INSERT INTO t_agnt_value (device_id, last_updated, last_seq, data_gathered)  
-  VALUES (?, now(), ?, str_to_date(?, '%Y-%m-%d %H:%i:%s.%f')) 
-  ON DUPLICATE KEY  
-  UPDATE  
-  last_seq = ?, 
-  last_updated = now(), 
-  data_gathered = str_to_date(?, '%Y-%m-%d %H:%i:%s.%f')
-
-save-sub: |
-  INSERT INTO t_agnt_value_min (device_id, device_ip, seq, crit_name, crit_sub_name, value, reg_time)  
-  VALUES (?, ?, ?, ?, ?, ?, NOW()) 
+    save-sub: |
+      INSERT INTO t_agnt_value_min (device_id, device_ip, seq, crit_name, crit_sub_name, value, reg_time)  
+      VALUES (?, ?, ?, ?, ?, ?, SYSDATE) 
