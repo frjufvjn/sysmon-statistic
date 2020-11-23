@@ -1,4 +1,7 @@
 
+dbms-type: mysql
+read-log-file-path: C:/workspace_new/Hcheck-ydh/logs/agent/agent.log.LAPTOP-IRQOLSO6
+
 get-max-seq: |
   SELECT device_id, IFNULL(MAX(last_seq),0) + 1 last_seq  
   FROM t_agnt_value 

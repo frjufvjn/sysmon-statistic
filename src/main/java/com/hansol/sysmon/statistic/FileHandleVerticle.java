@@ -21,11 +21,11 @@ public class FileHandleVerticle extends AbstractVerticle {
 
 	/**
 	 * @see - 아래와 같은 이유로 50초 이상 초과하지 않게 설정 해야함.
-	 * 	<li>저장처리는 한번의 트랜잭션당 장비당 1개씩 제한 
+	 * 	<li>저장처리는 한번의 트랜잭션당 장비당 1개씩 제한 TODO 혹시라도 모르니 2개이상이 올때를 대비해 구현해야할듯... 
 	 * 	<li>메모리 제한, 한번에 읽어들이는 양을 많이 소요하지 않기 위함
 	 * */
 	private final long pollingTimeMills = 20*1000;
-	
+
 	static ConcurrentHashMap<String, Long> sizeInfo = new ConcurrentHashMap<String, Long>();
 
 	private static final long realTimeThrottleMills = 3 * 60 * 1000;
@@ -33,10 +33,12 @@ public class FileHandleVerticle extends AbstractVerticle {
 
 	private LocalMap<String,JsonObject> realTimeMap = null;
 
-	final String path = "C:/workspace_new/Hcheck-ydh/logs/agent/agent.log.LAPTOP-IRQOLSO6";
+	private String path = "";
 
 	@Override
 	public void start() throws Exception {
+
+		path = config().getString("read-log-file-path");
 
 		realTimeMap = vertx.sharedData().getLocalMap("realtime-static-map");
 

@@ -69,6 +69,7 @@ public class WebVerticle extends AbstractVerticle {
 		});
 	}
 
+	// curl -i -X POST -d {\"deviceid\":\"server11\"} localhost:28080/api/device-performance
 	private void getStatisticApi(RoutingContext ctx) {
 		String deviceId = ctx.getBodyAsJson().getString("deviceid");
 
