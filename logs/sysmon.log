@@ -10666,3 +10666,34 @@ DEBUG 2020-11-23 12:39:21,432 [vert.x-eventloop-thread-2] (DataAccessVerticle.ja
 INFO  2020-11-23 12:39:21,437 [vert.x-eventloop-thread-2] (DataAccessVerticle.java:285) - [TX] start tx...
 INFO  2020-11-23 12:39:21,665 [vert.x-eventloop-thread-2] (DataAccessVerticle.java:301) - [TX] commit completed...
 DEBUG 2020-11-23 12:39:21,674 [vert.x-worker-thread-8] (PoolBase.java:234) - HikariPool-1 - Reset (autoCommit) on connection com.mysql.cj.jdbc.ConnectionImpl@3dbe7f41
+DEBUG 2020-11-23 13:18:14,593 [main] (Slf4JLogger.java:71) - Using SLF4J as the default logging framework
+DEBUG 2020-11-23 13:18:14,602 [main] (Slf4JLogger.java:81) - -Dio.netty.leakDetection.level: simple
+DEBUG 2020-11-23 13:18:14,603 [main] (Slf4JLogger.java:81) - -Dio.netty.leakDetection.targetRecords: 4
+DEBUG 2020-11-23 13:18:14,644 [main] (Slf4JLogger.java:76) - -Dio.netty.eventLoopThreads: 8
+DEBUG 2020-11-23 13:18:14,679 [main] (Slf4JLogger.java:71) - Platform: Windows
+DEBUG 2020-11-23 13:18:14,683 [main] (Slf4JLogger.java:76) - -Dio.netty.noUnsafe: false
+DEBUG 2020-11-23 13:18:14,684 [main] (Slf4JLogger.java:76) - Java version: 8
+DEBUG 2020-11-23 13:18:14,687 [main] (Slf4JLogger.java:71) - sun.misc.Unsafe.theUnsafe: available
+DEBUG 2020-11-23 13:18:14,688 [main] (Slf4JLogger.java:71) - sun.misc.Unsafe.copyMemory: available
+DEBUG 2020-11-23 13:18:14,689 [main] (Slf4JLogger.java:71) - java.nio.Buffer.address: available
+DEBUG 2020-11-23 13:18:14,690 [main] (Slf4JLogger.java:71) - direct buffer constructor: available
+DEBUG 2020-11-23 13:18:14,691 [main] (Slf4JLogger.java:76) - java.nio.Bits.unaligned: available, true
+DEBUG 2020-11-23 13:18:14,692 [main] (Slf4JLogger.java:71) - jdk.internal.misc.Unsafe.allocateUninitializedArray(int): unavailable prior to Java9
+DEBUG 2020-11-23 13:18:14,692 [main] (Slf4JLogger.java:76) - java.nio.DirectByteBuffer.<init>(long, int): available
+DEBUG 2020-11-23 13:18:14,693 [main] (Slf4JLogger.java:76) - sun.misc.Unsafe: available
+DEBUG 2020-11-23 13:18:14,694 [main] (Slf4JLogger.java:76) - -Dio.netty.tmpdir: C:\Users\PJW\AppData\Local\Temp (java.io.tmpdir)
+DEBUG 2020-11-23 13:18:14,694 [main] (Slf4JLogger.java:76) - -Dio.netty.bitMode: 64 (sun.arch.data.model)
+DEBUG 2020-11-23 13:18:14,696 [main] (Slf4JLogger.java:76) - -Dio.netty.noPreferDirect: false
+DEBUG 2020-11-23 13:18:14,697 [main] (Slf4JLogger.java:76) - -Dio.netty.maxDirectMemory: 3799515136 bytes
+DEBUG 2020-11-23 13:18:14,698 [main] (Slf4JLogger.java:76) - -Dio.netty.uninitializedArrayAllocationThreshold: -1
+DEBUG 2020-11-23 13:18:14,699 [main] (Slf4JLogger.java:71) - java.nio.ByteBuffer.cleaner(): available
+DEBUG 2020-11-23 13:18:14,723 [main] (Slf4JLogger.java:76) - -Dio.netty.noKeySetOptimization: false
+DEBUG 2020-11-23 13:18:14,723 [main] (Slf4JLogger.java:76) - -Dio.netty.selectorAutoRebuildThreshold: 512
+DEBUG 2020-11-23 13:18:14,735 [main] (Slf4JLogger.java:71) - org.jctools-core.MpscChunkedArrayQueue: available
+DEBUG 2020-11-23 13:18:18,241 [main] (Slf4JLogger.java:76) - Default DNS servers: [/154.10.6.11:53, /168.126.63.1:53, /8.8.8.8:53] (sun.net.dns.ResolverConfiguration)
+DEBUG 2020-11-23 13:18:18,253 [main] (Slf4JLogger.java:76) - -Djava.net.preferIPv4Stack: false
+DEBUG 2020-11-23 13:18:18,253 [main] (Slf4JLogger.java:76) - -Djava.net.preferIPv6Addresses: false
+DEBUG 2020-11-23 13:18:21,712 [main] (Slf4JLogger.java:86) - Loopback interface: lo (Software Loopback Interface 1, 127.0.0.1)
+DEBUG 2020-11-23 13:18:21,714 [main] (Slf4JLogger.java:81) - Failed to get SOMAXCONN from sysctl and file \proc\sys\net\core\somaxconn. Default: 200
+DEBUG 2020-11-23 13:18:21,774 [vert.x-internal-blocking-0] (Slf4JLogger.java:76) - -Dio.netty.threadLocalMap.stringBuilder.initialSize: 1024
+DEBUG 2020-11-23 13:18:21,775 [vert.x-internal-blocking-0] (Slf4JLogger.java:76) - -Dio.netty.threadLocalMap.stringBuilder.maxSize: 4096
