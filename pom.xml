@@ -23,6 +23,14 @@
 		<main.verticle>com.hansol.sysmon.statistic.MainVerticle</main.verticle>
 	</properties>
 
+	<repositories>
+		<repository>
+			<id>local-repo</id>
+			<name>local repository</name>
+			<url>file://${project.basedir}/lib</url>
+		</repository>
+	</repositories>
+
 	<dependencyManagement>
 		<dependencies>
 			<dependency>
@@ -45,17 +53,15 @@
 			<groupId>io.vertx</groupId>
 			<artifactId>vertx-sql-common</artifactId>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>io.vertx</groupId>
 			<artifactId>vertx-web</artifactId>
 		</dependency>
-		
-		<!-- <dependency>
-			<groupId>io.vertx</groupId>
-			<artifactId>vertx-config</artifactId>
-		</dependency> -->
-		
+
+		<!-- <dependency> <groupId>io.vertx</groupId> <artifactId>vertx-config</artifactId> 
+			</dependency> -->
+
 		<dependency>
 			<groupId>io.vertx</groupId>
 			<artifactId>vertx-config-yaml</artifactId>
@@ -66,14 +72,24 @@
 			<artifactId>mysql-connector-java</artifactId>
 			<version>8.0.16</version>
 		</dependency>
-		
+
+		<!-- ojdbc8 (in local repository ${project.basedir}/lib ) -->
+		<dependency>
+			<groupId>com.oracle</groupId>
+			<artifactId>ojdbc8</artifactId>
+			<version>12.2.0.1</version>
+		</dependency>
+
+
+
+
 		<!-- 디폴트인 c3p0가 아닌 Hikari를 쓰는 경우 의존성 추가 필요 -->
 		<dependency>
 			<groupId>com.zaxxer</groupId>
 			<artifactId>HikariCP</artifactId>
 			<version>3.1.0</version>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-slf4j-impl</artifactId>

@@ -1,0 +1,11 @@
+# Hikari Connection pool 
+## 최소 유지 커넥션 수 
+spring.datasource.hikari.minimum-idle=5 
+## 최대 커넥션 수 = 사용중 + 유휴상태 
+spring.datasource.hikari.maximum-pool-size=10 
+## 커넥션 대기시간(밀리초), 초과시 익셉션 
+spring.datasource.hikari.connection-timeout=30000 
+## 커넥션 유휴대기 가능시간(밀리초) 
+spring.datasource.hikari.idle-timeout=30000 
+## 커넥션 풀 네임 
+spring.datasource.hikari.pool-name=SpringBootJPAHikariCP

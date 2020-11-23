@@ -1,6 +1,5 @@
 package com.hansol.sysmon.statistic;
 
-import java.io.File;
 import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.List;
@@ -10,9 +9,6 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import io.vertx.config.ConfigRetriever;
-import io.vertx.config.ConfigRetrieverOptions;
-import io.vertx.config.ConfigStoreOptions;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Handler;
 import io.vertx.core.eventbus.Message;
@@ -30,33 +26,35 @@ public class DataAccessVerticle extends AbstractVerticle {
 
 	@Override
 	public void start() throws Exception {
-		
+
 		vertx.eventBus().<JsonArray>consumer("statistic.save", this::saveStatisticTx);
 
-
 		try {
-			final String confPath = getConfigPath("db.properties");
+			final String confPath = Util.getConfigPath("db.properties");
 			prop.load(new FileReader(confPath));
 
+			String dbmsType = config().getString("dbms-type");
 			jdbcClient = JDBCClient.createShared(vertx, new JsonObject()
 					.put("provider_class", "io.vertx.ext.jdbc.spi.impl.HikariCPDataSourceProvider")
-					.put("jdbcUrl", prop.getProperty("db.url"))
-					.put("driverClassName", prop.getProperty("db.driver"))
-					.put("maximumPoolSize", Integer.parseInt(prop.getProperty("db.max_pool_size")))
-					.put("username", prop.getProperty("db.username"))
-					.put("password", prop.getProperty("db.password"))
+					.put("jdbcUrl", prop.getProperty(dbmsType + ".url"))
+					.put("driverClassName", prop.getProperty(dbmsType + ".driver"))
+					.put("maximumPoolSize", Integer.parseInt(prop.getProperty(dbmsType + ".max_pool_size")))
+					.put("username", prop.getProperty(dbmsType + ".username"))
+					.put("password", prop.getProperty(dbmsType + ".password"))
 					.put("idleTimeout", 600000)
-					.put("minimumIdle", Integer.parseInt(prop.getProperty("db.min_pool_size")))
+					.put("minimumIdle", Integer.parseInt(prop.getProperty(dbmsType + ".min_pool_size")))
 					);
 		} catch (Exception e) {
 			logger.error("jdbc client create failed : {}", e.getMessage());
 		}
 	}
 
+
 	private void saveStatisticTx(Message<JsonArray> msg) {
 		logger.debug("len:{}, data:{}", msg.body().size(), msg.body().encode());
 
 		final JsonArray data = msg.body();
+		final JsonObject queryObj = getMultiDbmsSql();
 
 		jdbcClient.getConnection(connection -> {
 			if (connection.succeeded()) {
@@ -65,7 +63,7 @@ public class DataAccessVerticle extends AbstractVerticle {
 				final SQLConnection conn = connection.result();
 
 				String inParam = "(" + getMultiSqlInString(data) + ")";
-				String selectSql = config().getString("get-max-seq") + inParam + config().getString("get-max-seq-tail");
+				String selectSql = queryObj.getString("get-max-seq") + inParam + queryObj.getString("get-max-seq-tail");
 
 				conn.query(selectSql, rs -> {
 					if (rs.failed()) {
@@ -74,6 +72,15 @@ public class DataAccessVerticle extends AbstractVerticle {
 					}
 
 					final List<JsonArray> seqList = rs.result().getResults();
+
+					if (seqList.size() == 0) {
+						for (Object entry : data) {
+							JsonArray seqArr = new JsonArray();
+							seqArr.add(((JsonObject)entry).getString("deviceid"));
+							seqArr.add(1);
+							seqList.add(seqArr);
+						}
+					}
 
 					List<JsonObject> prepare = data.stream().map(m -> ((JsonObject)m)
 							.put("save-seq", findSeq(((JsonObject)m).getString("deviceid"), seqList).getValue(1))
@@ -85,11 +92,17 @@ public class DataAccessVerticle extends AbstractVerticle {
 					List<JsonArray> saveData = new ArrayList<>();
 					for (JsonObject obj : prepare) {
 						JsonArray a = new JsonArray();
-						a.add(obj.getString("deviceid"));
-						a.add(obj.getValue("save-seq"));
-						a.add(obj.getString("executetime"));
-						a.add(obj.getValue("save-seq"));
-						a.add(obj.getString("executetime"));
+						if ("mysql".equals(config().getString("dbms-type"))) {
+							a.add(obj.getString("deviceid"));
+							a.add(obj.getValue("save-seq"));
+							a.add(obj.getString("executetime"));
+							a.add(obj.getValue("save-seq"));
+							a.add(obj.getString("executetime"));
+						} else {
+							a.add(obj.getString("deviceid"));
+							a.add(obj.getValue("save-seq"));
+							a.add(obj.getString("executetime").substring(0, 19));
+						}
 						saveData.add(a);
 					}
 
@@ -97,41 +110,35 @@ public class DataAccessVerticle extends AbstractVerticle {
 
 					// start a transaction
 					startTx(conn, beginTrans -> {
-						try {
-							conn.batchWithParams(config().getString("save-main"), saveData, ar1 -> {
-								if (ar1.failed()) {
-									logger.error(ar1.cause().getMessage());
+						conn.batchWithParams(queryObj.getString("save-main"), saveData, ar1 -> {
+							if (ar1.failed()) {
+								logger.error(ar1.cause().getMessage());
+								rollbackAndClose(conn, rc -> {
 									throw new RuntimeException(ar1.cause());
-								}
+								});
 
-								conn.batchWithParams(config().getString("save-sub"), makeSubSaveData(prepare), ar2 -> {
+							} else {
+								conn.batchWithParams(queryObj.getString("save-sub"), makeSubSaveData(prepare), ar2 -> {
 
 									if (ar2.failed()) {
 										logger.error(ar2.cause().getMessage());
-										throw new RuntimeException(ar2.cause());
-									}
-
-									// commit data
-									endTx(conn, commitTrans -> {
-										conn.close(c -> {
-											if (c.failed()) {
-												logger.error(c.cause().getMessage());
-											}
+										rollbackAndClose(conn, rc -> {
+											throw new RuntimeException(ar2.cause());
 										});
-									});
-								});
-							});
 
-						} catch (Exception e) {
-							logger.error("TX Rollback : {}", e.getMessage());
-							rollbackTx(conn, rollbackTrans -> {
-								conn.close(c -> {
-									if (c.failed()) {
-										logger.error(c.cause().getMessage());
+									} else {
+										// commit data
+										endTx(conn, commitTrans -> {
+											conn.close(c -> {
+												if (c.failed()) {
+													logger.error(c.cause().getMessage());
+												}
+											});
+										});
 									}
 								});
-							});
-						}
+							}
+						});
 					});
 				});
 
@@ -293,17 +300,20 @@ public class DataAccessVerticle extends AbstractVerticle {
 	}
 
 	private void endTx(SQLConnection conn, Handler<ResultSet> done) {
+		logger.info("\n#################\n[TX] commit try...");
 		conn.commit(res -> {
 			if (res.failed()) {
+				logger.error("  - commit error: {}", res.cause().getMessage());
 				throw new RuntimeException(res.cause());
 			}
 
-			logger.info("[TX] commit completed...");
+			logger.info("\n[TX] commit end...\n#################");
 
 			done.handle(null);
 		});
 	}
 
+	@SuppressWarnings("unused")
 	private void rollbackTx(SQLConnection conn, Handler<ResultSet> done) {
 		conn.rollback(res -> {
 			if (res.failed()) {
@@ -314,30 +324,30 @@ public class DataAccessVerticle extends AbstractVerticle {
 		});
 	}
 
-	private String getConfigPath(String fileName) {
-		return System.getProperty("app.home") == null ? 
-				String.join(File.separator, System.getProperty("user.dir"), "config", fileName) 
-				: String.join(File.separator, System.getProperty("app.home"), "config", fileName);
+	private void rollbackAndClose(SQLConnection conn, Handler<ResultSet> done) {
+		logger.error("\n#################\n[ SQL Error --> TX Rollback Try");
+
+		conn.rollback(res -> {
+			if (res.failed()) {
+				// throw new RuntimeException(res.cause());
+				logger.error("\n  - TX Rollback failed... {}", res.cause().getMessage());
+			}
+
+			conn.close(c -> {
+				if (c.failed()) {
+					logger.error("\n  - Conn close failed : {}", c.cause().getMessage());
+				} else {
+					logger.error("\n  - TX rollbackAndClose end...]\n#################");
+				}
+
+				done.handle(null);
+			});
+		});
 	}
 
-	private void getSqlConf(String confFileName, Handler<JsonObject> aHandler) {
-
-		ConfigRetrieverOptions options = new ConfigRetrieverOptions()
-				.setScanPeriod(-1) // 주기적 스캔을 설정하지 않음...
-				.addStore(new ConfigStoreOptions()
-						.setType("file")
-						.setFormat("yaml")
-						.setConfig(new JsonObject().put("path", confFileName)));
-
-		ConfigRetriever retriever = ConfigRetriever.create(vertx, options);
-
-		retriever.getConfig(c -> {
-			if (c.succeeded()) {
-				aHandler.handle(c.result());
-			} else {
-				logger.error(c.cause().getMessage());
-				aHandler.handle(null);
-			}
-		});
+	private JsonObject getMultiDbmsSql() {
+		return "mysql".equals(config().getString("dbms-type")) ? 
+				config().getJsonObject("sql-service").getJsonObject("mysql") 
+				: config().getJsonObject("sql-service").getJsonObject("oracle");
 	}
 }
