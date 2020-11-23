@@ -27,43 +27,30 @@ public class DataAccessVerticle extends AbstractVerticle {
 	private final Logger logger = LogManager.getLogger(this.getClass());
 	private static JDBCClient jdbcClient = null;
 	private Properties prop = new Properties();
-	private static JsonObject sqlConfig = new JsonObject();
 
 	@Override
 	public void start() throws Exception {
-
-		getSqlConf(getConfigPath("sql.yml"), ar -> {
-			if (ar != null) {
-				logger.debug("config : {}", ar.encodePrettily());
-				sqlConfig = ar;
+		
+		vertx.eventBus().<JsonArray>consumer("statistic.save", this::saveStatisticTx);
 
 
+		try {
+			final String confPath = getConfigPath("db.properties");
+			prop.load(new FileReader(confPath));
 
-				vertx.eventBus().<JsonArray>consumer("statistic.save", this::saveStatisticTx);
-
-
-
-				try {
-					final String confPath = getConfigPath("db.properties");
-					prop.load(new FileReader(confPath));
-
-					jdbcClient = JDBCClient.createShared(vertx, new JsonObject()
-							.put("provider_class", "io.vertx.ext.jdbc.spi.impl.HikariCPDataSourceProvider")
-							.put("jdbcUrl", prop.getProperty("db.url"))
-							.put("driverClassName", prop.getProperty("db.driver"))
-							.put("maximumPoolSize", Integer.parseInt(prop.getProperty("db.max_pool_size")))
-							.put("username", prop.getProperty("db.username"))
-							.put("password", prop.getProperty("db.password"))
-							.put("idleTimeout", 600000)
-							.put("minimumIdle", Integer.parseInt(prop.getProperty("db.min_pool_size")))
-							);
-				} catch (Exception e) {
-					logger.error("jdbc client create failed : {}", e.getMessage());
-				}
-			}
-		});
-
-
+			jdbcClient = JDBCClient.createShared(vertx, new JsonObject()
+					.put("provider_class", "io.vertx.ext.jdbc.spi.impl.HikariCPDataSourceProvider")
+					.put("jdbcUrl", prop.getProperty("db.url"))
+					.put("driverClassName", prop.getProperty("db.driver"))
+					.put("maximumPoolSize", Integer.parseInt(prop.getProperty("db.max_pool_size")))
+					.put("username", prop.getProperty("db.username"))
+					.put("password", prop.getProperty("db.password"))
+					.put("idleTimeout", 600000)
+					.put("minimumIdle", Integer.parseInt(prop.getProperty("db.min_pool_size")))
+					);
+		} catch (Exception e) {
+			logger.error("jdbc client create failed : {}", e.getMessage());
+		}
 	}
 
 	private void saveStatisticTx(Message<JsonArray> msg) {
@@ -78,7 +65,7 @@ public class DataAccessVerticle extends AbstractVerticle {
 				final SQLConnection conn = connection.result();
 
 				String inParam = "(" + getMultiSqlInString(data) + ")";
-				String selectSql = sqlConfig.getString("get-max-seq") + inParam + sqlConfig.getString("get-max-seq-tail");
+				String selectSql = config().getString("get-max-seq") + inParam + config().getString("get-max-seq-tail");
 
 				conn.query(selectSql, rs -> {
 					if (rs.failed()) {
@@ -111,13 +98,13 @@ public class DataAccessVerticle extends AbstractVerticle {
 					// start a transaction
 					startTx(conn, beginTrans -> {
 						try {
-							conn.batchWithParams(sqlConfig.getString("save-main"), saveData, ar1 -> {
+							conn.batchWithParams(config().getString("save-main"), saveData, ar1 -> {
 								if (ar1.failed()) {
 									logger.error(ar1.cause().getMessage());
 									throw new RuntimeException(ar1.cause());
 								}
 
-								conn.batchWithParams(sqlConfig.getString("save-sub"), makeSubSaveData(prepare), ar2 -> {
+								conn.batchWithParams(config().getString("save-sub"), makeSubSaveData(prepare), ar2 -> {
 
 									if (ar2.failed()) {
 										logger.error(ar2.cause().getMessage());
