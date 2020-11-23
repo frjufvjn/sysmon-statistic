@@ -14,7 +14,7 @@ import io.vertx.core.json.JsonObject;
 
 public class Util {
 
-	private static final Logger logger = LogManager.getLogger(Util.class);
+	private static final Logger logger = LogManager.getLogger(Util.class); 
 
 	public static String getConfigPath(String fileName) {
 		return System.getProperty("app.home") == null ? 
