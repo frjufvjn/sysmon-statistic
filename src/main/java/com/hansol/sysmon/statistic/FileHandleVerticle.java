@@ -38,7 +38,6 @@ public class FileHandleVerticle extends AbstractVerticle {
 
 		/**
 		 * @see - 아래와 같은 이유로 50초 이상 초과하지 않게 설정 해야함.
-		 * 	<li>저장처리는 한번의 트랜잭션당 장비당 1개씩 제한 TODO 혹시라도 모르니 2개이상이 올때를 대비해 구현해야할듯... 
 		 * 	<li>메모리 제한, 한번에 읽어들이는 양을 많이 소요하지 않기 위함
 		 * */
 		final long pollingTimeMills = config().getInteger("read-inteval-sec", 20) * 1000;

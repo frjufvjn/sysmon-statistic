@@ -3,8 +3,11 @@
 
 Hansol Inticube IS-MON statistic        
   - IS-MON statistic independent server module
+  - By separating the heavy statistics DB transaction process, the load is distributed to ensure stable processing of the main application job.
+  - Increases DB transaction performance and efficiency by collecting and storing unit storage for a certain period of time at a time for unit DB transaction in which cases are processed.
+  - Remove unnecessary real-time data DB transaction and manage as memory and provide as api
 
-Building
+### Building
 
 To launch your tests:
 ```
