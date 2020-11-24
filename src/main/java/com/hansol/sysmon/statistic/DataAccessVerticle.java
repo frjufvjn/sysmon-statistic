@@ -292,7 +292,13 @@ public class DataAccessVerticle extends AbstractVerticle {
 		logger.info("[TX] start tx...");
 		conn.setAutoCommit(false, res -> {
 			if (res.failed()) {
-				throw new RuntimeException(res.cause());
+				conn.close(c -> {
+					if (c.failed()) {
+						logger.error("Conn close failed : {}", c.cause().getMessage());
+					}
+					
+					throw new RuntimeException(res.cause());
+				});
 			}
 
 			done.handle(null);
