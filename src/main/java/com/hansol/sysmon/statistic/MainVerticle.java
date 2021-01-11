@@ -26,7 +26,7 @@ public class MainVerticle extends AbstractVerticle {
 
 				vertx.deployVerticle(FileHandleVerticle.class.getName(), depOpts, logger::warn);
 				vertx.deployVerticle(DataAccessVerticle.class.getName(), depOpts, logger::warn);
-				vertx.deployVerticle(WebVerticle.class.getName(), logger::warn);
+				vertx.deployVerticle(WebApiVerticle.class.getName(), logger::warn);
 			}
 		});
 	}
