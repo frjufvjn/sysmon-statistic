@@ -1,6 +1,9 @@
 package com.hansol.sysmon.statistic;
 
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -21,13 +24,19 @@ public class FileHandleVerticle extends AbstractVerticle {
 
 	static ConcurrentHashMap<String, Long> sizeInfo = new ConcurrentHashMap<String, Long>();
 	static ConcurrentHashMap<String, Long> throttleInfo = new ConcurrentHashMap<String, Long>();
+	static ConcurrentHashMap<String, Integer> distributedIdxInfo = new ConcurrentHashMap<String, Integer>(); 
+	
 	private LocalMap<String,JsonObject> realTimeMap = null;
 	private String path = "";
+	private static int saveThrottleCnt = 5;
+	private static int sysGabSec = 5;
 
 	@Override
 	public void start() throws Exception {
 
 		path = config().getString("read-log-file-path");
+		saveThrottleCnt = config().getInteger("save-throttle-cnt", saveThrottleCnt);
+		sysGabSec = config().getInteger("sys-gab-sec", sysGabSec);
 
 		realTimeMap = vertx.sharedData().getLocalMap("realtime-static-map");
 
@@ -97,10 +106,21 @@ public class FileHandleVerticle extends AbstractVerticle {
 														realTimeMap.put(deviceId, data);
 
 														if (!throttleInfo.containsKey(deviceId)) {
-															throttleInfo.put(deviceId, System.currentTimeMillis());
-															jsonArr.add(data);
+															distributedIdxInfo.put(deviceId, throttleInfo.size());
+															
+															int distributedIdx = distributedIdxInfo.get(deviceId) % 10;
+															logger.info("deviceid:{}, distributedIdx:{}", deviceId, distributedIdx);
+															
+
+															if (distributedIdx == 0) {
+																throttleInfo.put(deviceId, System.currentTimeMillis());
+																jsonArr.add(data);
+															} else {
+																throttleInfo.put(deviceId, System.currentTimeMillis() + (distributedIdx * 60_000));
+															}
+															
 														} else {
-															if ( System.currentTimeMillis() > throttleInfo.get(deviceId) + saveThrottleMills ) {
+															if ( System.currentTimeMillis() > throttleInfo.get(deviceId) + (saveThrottleMills - (sysGabSec*1000)) ) {
 																throttleInfo.put(deviceId, System.currentTimeMillis());
 																jsonArr.add(data);
 															} else {
@@ -119,7 +139,8 @@ public class FileHandleVerticle extends AbstractVerticle {
 
 											if (jsonArr.size() > 0) {
 												logger.info("save dispatch size: {}", jsonArr.size());
-												vertx.eventBus().send("statistic.save", jsonArr);
+												// vertx.eventBus().send("statistic.save", jsonArr);
+												distributedSaveDispatch(jsonArr);
 											}
 
 										} else {
@@ -140,6 +161,37 @@ public class FileHandleVerticle extends AbstractVerticle {
 				}
 			});
 		});
+	}
+
+	private void distributedSaveDispatch(JsonArray jsonArr) {
+
+		int remainder = jsonArr.size() % saveThrottleCnt;
+		int saveLoopCnt = jsonArr.size() / saveThrottleCnt + (remainder > 0 ? 1 : 0);
+
+		logger.info("saveLoopCnt : {}", saveLoopCnt);
+
+		for (int idx=0; idx<saveLoopCnt; idx++) {
+			int startIdx = idx*saveThrottleCnt;
+			int endIdx;
+			if (saveLoopCnt == (idx+1)) {
+				if (remainder > 0) {
+					endIdx = startIdx + remainder;
+				} else {
+					endIdx = startIdx + saveThrottleCnt;
+				}
+			} else {
+				endIdx = startIdx + saveThrottleCnt;
+			}
+
+			logger.info("start:{}, end:{}", startIdx, endIdx);
+
+			List<Object> rangedArr = IntStream.range(startIdx, endIdx)
+					.mapToObj(i -> jsonArr.getValue(i))
+					.collect(Collectors.toList());
+
+			// System.out.println(new JsonArray(rangedArr).encode());
+			vertx.eventBus().send("statistic.save", new JsonArray(rangedArr));
+		}
 	}
 
 	private void getAsyncFileSize(Handler<Long> aHandler) {
