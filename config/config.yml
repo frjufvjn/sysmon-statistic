@@ -1,15 +1,18 @@
 
 dbms-type: mysql
 read-log-file-path: C:/workspace_new/Hcheck-ydh/logs/agent/agent.log.LAPTOP-IRQOLSO6 # C:/doc/logfile.log
-read-inteval-sec: 10
-save-throttle-min: 3
+read-inteval-sec: 10 # 파일 읽기 간격 (10분 간격의 데이터 저장에 최적화된 프로그램이여서 이 값은 수정 불가)
+save-throttle-min: 10 # 데이터 저장 간격 (10분 간격의 데이터 저장에 최적화된 프로그램이여서 이 값은 수정 불가)
+save-throttle-cnt: 5 # 최대 저장 장비수
+sys-gab-sec: 5
+save-addtional: true
 
 sql-service: 
   mysql:
     get-max-seq: |
-      SELECT device_id, IFNULL(MAX(last_seq),0) + 1 last_seq  
-      FROM t_agnt_value 
-      WHERE device_id IN 
+      SELECT A.DEVICE_ID, IFNULL(MAX(last_seq),0) + 1 last_seq
+      FROM T_DEVICE A LEFT OUTER JOIN T_AGNT_VALUE B ON A.DEVICE_ID = B.DEVICE_ID
+      WHERE A.DEVICE_ID IN 
     
     get-max-seq-tail: "GROUP BY device_id"
     

@@ -31,9 +31,14 @@ public class DataAccessVerticle extends AbstractVerticle {
 
 		try {
 			final String confPath = Util.getConfigPath("db.properties");
+			System.out.println("----------------------> confPath: " + confPath);
 			prop.load(new FileReader(confPath));
 
 			String dbmsType = config().getString("dbms-type");
+			
+			int idleTimeoutSec = Integer.parseInt(prop.getProperty(dbmsType + ".idle_timeout_sec"));
+			logger.info("### idleTimeoutSec : {}", idleTimeoutSec);
+			
 			jdbcClient = JDBCClient.createShared(vertx, new JsonObject()
 					.put("provider_class", "io.vertx.ext.jdbc.spi.impl.HikariCPDataSourceProvider")
 					.put("jdbcUrl", prop.getProperty(dbmsType + ".url"))
@@ -41,7 +46,7 @@ public class DataAccessVerticle extends AbstractVerticle {
 					.put("maximumPoolSize", Integer.parseInt(prop.getProperty(dbmsType + ".max_pool_size")))
 					.put("username", prop.getProperty(dbmsType + ".username"))
 					.put("password", prop.getProperty(dbmsType + ".password"))
-					.put("idleTimeout", 600000)
+					.put("idleTimeout", idleTimeoutSec * 1000) // idel_timeout_sec
 					.put("minimumIdle", Integer.parseInt(prop.getProperty(dbmsType + ".min_pool_size")))
 					);
 		} catch (Exception e) {
@@ -268,6 +273,29 @@ public class DataAccessVerticle extends AbstractVerticle {
 					k.add(String.valueOf(idx));
 					k.add(String.format("%.3f", diskinfo.getJsonObject(idx).getDouble("usedPercent"))); 
 					saveData.add(k);
+					
+					if (config().getBoolean("save-addtional")) {
+
+						// diskTotal
+						JsonArray l = new JsonArray();
+						l.add(obj.getString("deviceid"));
+						l.add(obj.getString("deviceip"));
+						l.add(obj.getValue("save-seq"));
+						l.add("diskTotal");
+						l.add(String.valueOf(idx));
+						l.add(diskinfo.getJsonObject(idx).getLong("tot")); 
+						saveData.add(l);
+						
+						// diskUsed
+						JsonArray m = new JsonArray();
+						m.add(obj.getString("deviceid"));
+						m.add(obj.getString("deviceip"));
+						m.add(obj.getValue("save-seq"));
+						m.add("diskUsed");
+						m.add(String.valueOf(idx));
+						m.add(diskinfo.getJsonObject(idx).getLong("used"));
+						saveData.add(m);
+					}
 				}
 			}
 		}

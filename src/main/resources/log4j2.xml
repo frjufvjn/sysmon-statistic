@@ -3,7 +3,7 @@
 
 	<Appenders>
 		<RollingFile name="FILE">
-			<FileName>./logs/sysmon.log</FileName>
+			<FileName>./logs/sysmon-statistic.log</FileName>
 			<FilePattern>./log-archive/%d{yyyy-MM-dd-hh}-%i.log.zip</FilePattern>
 			<PatternLayout>
 				<Pattern>%-5p %d{yyyy-MM-dd HH:mm:ss,SSS} [%t] (%F:%L) - %m%n</Pattern><!-- 패키지경로 제거 -->
