@@ -159,10 +159,17 @@ public class DataAccessVerticle extends AbstractVerticle {
 
 		for (JsonObject obj : prepare) {
 
+			String deviceIp = "";
+			if ("".equals(obj.getString("deviceip")) || obj.getString("deviceip") == null) {
+				deviceIp = "127.0.0.1";
+			} else {
+				deviceIp = obj.getString("deviceip");
+			}
+					
 			// cpuUsage
 			JsonArray a = new JsonArray();
 			a.add(obj.getString("deviceid"));
-			a.add(obj.getString("deviceip"));
+			a.add(deviceIp);
 			a.add(obj.getValue("save-seq"));
 			a.add("cpuUsage");
 			a.add("");
@@ -172,7 +179,7 @@ public class DataAccessVerticle extends AbstractVerticle {
 			// memoryTotal
 			JsonArray b = new JsonArray();
 			b.add(obj.getString("deviceid"));
-			b.add(obj.getString("deviceip"));
+			b.add(deviceIp);
 			b.add(obj.getValue("save-seq"));
 			b.add("memoryTotal");
 			b.add("");
@@ -182,7 +189,7 @@ public class DataAccessVerticle extends AbstractVerticle {
 			// memoryFree
 			JsonArray c = new JsonArray();
 			c.add(obj.getString("deviceid"));
-			c.add(obj.getString("deviceip"));
+			c.add(deviceIp);
 			c.add(obj.getValue("save-seq"));
 			c.add("memoryFree");
 			c.add("");
@@ -192,7 +199,7 @@ public class DataAccessVerticle extends AbstractVerticle {
 			// memoryUsage
 			JsonArray d = new JsonArray();
 			d.add(obj.getString("deviceid"));
-			d.add(obj.getString("deviceip"));
+			d.add(deviceIp);
 			d.add(obj.getValue("save-seq"));
 			d.add("memoryUsage");
 			d.add("");
@@ -202,7 +209,7 @@ public class DataAccessVerticle extends AbstractVerticle {
 			// swapTotal
 			JsonArray e = new JsonArray();
 			e.add(obj.getString("deviceid"));
-			e.add(obj.getString("deviceip"));
+			e.add(deviceIp);
 			e.add(obj.getValue("save-seq"));
 			e.add("swapTotal");
 			e.add("");
@@ -212,7 +219,7 @@ public class DataAccessVerticle extends AbstractVerticle {
 			// swapFree
 			JsonArray f = new JsonArray();
 			f.add(obj.getString("deviceid"));
-			f.add(obj.getString("deviceip"));
+			f.add(deviceIp);
 			f.add(obj.getValue("save-seq"));
 			f.add("swapFree");
 			f.add("");
@@ -222,7 +229,7 @@ public class DataAccessVerticle extends AbstractVerticle {
 			// swapUsage
 			JsonArray g = new JsonArray();
 			g.add(obj.getString("deviceid"));
-			g.add(obj.getString("deviceip"));
+			g.add(deviceIp);
 			g.add(obj.getValue("save-seq"));
 			g.add("swapUsage");
 			g.add("");
@@ -232,7 +239,7 @@ public class DataAccessVerticle extends AbstractVerticle {
 			// osName
 			JsonArray h = new JsonArray();
 			h.add(obj.getString("deviceid"));
-			h.add(obj.getString("deviceip"));
+			h.add(deviceIp);
 			h.add(obj.getValue("save-seq"));
 			h.add("osName");
 			h.add("");
@@ -242,7 +249,7 @@ public class DataAccessVerticle extends AbstractVerticle {
 			// companyName
 			JsonArray i = new JsonArray();
 			i.add(obj.getString("deviceid"));
-			i.add(obj.getString("deviceip"));
+			i.add(deviceIp);
 			i.add(obj.getValue("save-seq"));
 			i.add("companyName");
 			i.add("");
@@ -257,7 +264,7 @@ public class DataAccessVerticle extends AbstractVerticle {
 					// diskName
 					JsonArray j = new JsonArray();
 					j.add(obj.getString("deviceid"));
-					j.add(obj.getString("deviceip"));
+					j.add(deviceIp);
 					j.add(obj.getValue("save-seq"));
 					j.add("diskName");
 					j.add(String.valueOf(idx));
@@ -267,7 +274,7 @@ public class DataAccessVerticle extends AbstractVerticle {
 					// diskUsage
 					JsonArray k = new JsonArray();
 					k.add(obj.getString("deviceid"));
-					k.add(obj.getString("deviceip"));
+					k.add(deviceIp);
 					k.add(obj.getValue("save-seq"));
 					k.add("diskUsage");
 					k.add(String.valueOf(idx));
@@ -279,7 +286,7 @@ public class DataAccessVerticle extends AbstractVerticle {
 						// diskTotal
 						JsonArray l = new JsonArray();
 						l.add(obj.getString("deviceid"));
-						l.add(obj.getString("deviceip"));
+						l.add(deviceIp);
 						l.add(obj.getValue("save-seq"));
 						l.add("diskTotal");
 						l.add(String.valueOf(idx));
@@ -289,7 +296,7 @@ public class DataAccessVerticle extends AbstractVerticle {
 						// diskUsed
 						JsonArray m = new JsonArray();
 						m.add(obj.getString("deviceid"));
-						m.add(obj.getString("deviceip"));
+						m.add(deviceIp);
 						m.add(obj.getValue("save-seq"));
 						m.add("diskUsed");
 						m.add(String.valueOf(idx));
